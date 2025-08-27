@@ -28,9 +28,11 @@ import { useState } from "react";
  * 
  * @param {Object} props - The component props
  * @param {Function} props.onClose - Callback function to close the modal, passed from parent
+ * @param {Object} props.currentSettings - Current settings object with slippage and deadline values
+ * @param {Function} props.onSaveSettings - Callback function to save settings, passed from parent
  * @returns {JSX.Element} The rendered modal dialog
  */
-export default function SettingsModal({ onClose }) {
+export default function SettingsModal({ onClose, currentSettings, onSaveSettings }) {
   /**
    * State Management with useState Hook
    * 
@@ -50,9 +52,9 @@ export default function SettingsModal({ onClose }) {
    * Example: 0.5% slippage on a $100 trade means the actual price can be 
    * between $99.50 and $100.50.
    * 
-   * Initial value: 0.5 (representing 0.5%)
+   * Initial value: Uses current settings or defaults to 0.5 (representing 0.5%)
    */
-  const [slippage, setSlippage] = useState(0.5);
+  const [slippage, setSlippage] = useState(currentSettings?.slippage || 0.5);
   
   /**
    * Transaction Deadline State
@@ -63,9 +65,22 @@ export default function SettingsModal({ onClose }) {
    * This prevents transactions from being executed at stale prices if
    * network congestion causes significant delays.
    * 
-   * Initial value: 20 (representing 20 minutes)
+   * Initial value: Uses current settings or defaults to 20 (representing 20 minutes)
    */
-  const [deadline, setDeadline] = useState(20);
+  const [deadline, setDeadline] = useState(currentSettings?.deadline || 20);
+
+  /**
+   * Handle Save Settings
+   * 
+   * Saves the current form values and closes the modal
+   */
+  const handleSave = () => {
+    onSaveSettings({
+      slippage: parseFloat(slippage),
+      deadline: parseInt(deadline)
+    });
+    onClose();
+  };
 
   /**
    * Component Render Return
@@ -170,24 +185,33 @@ export default function SettingsModal({ onClose }) {
          * flex justify-end: Aligns button to the right side
          * This follows common modal patterns where action buttons are right-aligned.
          */}
-        <div className="mt-6 flex justify-end">
+        <div className="mt-6 flex justify-end space-x-3">
           {/**
-           * Close Button
+           * Cancel Button
            * 
            * onClick={onClose}: Calls the callback function passed from parent component
            * This demonstrates "lifting state up" pattern - the parent controls
            * whether the modal is open/closed, and this component notifies the
            * parent when the user wants to close it.
-           * 
-           * The parent component might do something like:
-           * const [showModal, setShowModal] = useState(false);
-           * <SettingsModal onClose={() => setShowModal(false)} />
            */}
           <button
             onClick={onClose}
             className="px-4 py-2 text-gray-600 hover:underline"
           >
-            Close
+            Cancel
+          </button>
+          
+          {/**
+           * Save Button
+           * 
+           * onClick={handleSave}: Saves the settings and closes the modal
+           * Primary button styling to indicate it's the main action
+           */}
+          <button
+            onClick={handleSave}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          >
+            Save
           </button>
         </div>
       </div>
