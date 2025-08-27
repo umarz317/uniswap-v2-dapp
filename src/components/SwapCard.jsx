@@ -125,6 +125,18 @@ export default function SwapCard() {
   const [showSettings, setShowSettings] = useState(false);
   const [isSwappingFromEth, setIsSwappingFromEth] = useState(true)
 
+  /**
+   * Settings State
+   * 
+   * Manages trading parameters that can be configured by the user:
+   * - slippage: Maximum acceptable price slippage as a percentage
+   * - deadline: Transaction deadline in minutes
+   */
+  const [settings, setSettings] = useState({
+    slippage: 0.5, // 0.5% default slippage tolerance
+    deadline: 20   // 20 minutes default deadline
+  });
+
   const handleSwap = () => {
     setFromToken(toToken);
     setToToken(fromToken);
@@ -226,14 +238,20 @@ export default function SwapCard() {
     outputToken = isSwappingFromEth ? DAI : WETH
     inputAmount = CurrencyAmount.fromRawAmount(inputToken, parseEther(fromAmount.toString()).toString())
     trade = await fetchRouteAndTrade(inputAmount, inputToken, outputToken)
-    const slippageTolerance = new Percent("50", "10000")
+    
+    // Use slippage from settings instead of hardcoded value
+    // Convert percentage to basis points (e.g., 0.5% -> 50 basis points)
+    const slippageBasisPoints = Math.floor(settings.slippage * 100).toString()
+    const slippageTolerance = new Percent(slippageBasisPoints, "10000")
     const amountOutMin = trade.trade.minimumAmountOut(slippageTolerance)
+    
     const swapParams = {
       amountIn: parseEther(trade.trade.inputAmount.toExact()),
       amountOutMin: parseEther(amountOutMin.toExact()),
       path: isSwappingFromEth ? [WETH.address, DAI.address] : [DAI.address, WETH.address],
       to: address,
-      deadline: Math.floor(Date.now() / 1000 + 60 * 20)
+      // Use deadline from settings instead of hardcoded value
+      deadline: Math.floor(Date.now() / 1000 + 60 * settings.deadline)
     }
     return swapParams
   }
@@ -321,6 +339,9 @@ export default function SwapCard() {
           >
             Settings
           </button>
+          <div className="text-xs text-gray-500">
+            Slippage: {settings.slippage}% | Deadline: {settings.deadline}m
+          </div>
         </div>
         <button
           type="button"
@@ -331,7 +352,13 @@ export default function SwapCard() {
         </button>
         <ConnectWalletButton />
       </div>
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      {showSettings && (
+        <SettingsModal 
+          onClose={() => setShowSettings(false)} 
+          currentSettings={settings}
+          onSaveSettings={setSettings}
+        />
+      )}
     </div>
   );
 }
